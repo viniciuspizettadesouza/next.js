@@ -194,18 +194,55 @@ function isGroupSegment(segment: string) {
 }
 
 const getRegexPatterns = (() => {
-  let cached: {
-    extensions: string[]
-    patterns: {
-      ext: RegExp
-      index: RegExp
-      page: RegExp
-      layout: RegExp
-    }
-  } | null = null
+  let cached = null;
 
   return () => {
-    if (cached) return cached
+    if (cached) return cached;
+
+    const fallback = ['js', 'jsx', 'ts', 'tsx'];
+    let extensions;
+
+    try {
+      // [Your existing config loading code]
+      
+      if (userConfig && Array.isArray(userConfig.pageExtensions) && userConfig.pageExtensions.length > 0) {
+        // Properly handle extensions that contain dots
+        extensions = userConfig.pageExtensions;
+      } else {
+        extensions = fallback;
+      }
+    } catch (e) {
+      extensions = fallback;
+    }
+
+    // Escape special regex characters in extensions
+    const escaped = extensions.map(ext => 
+      ext.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    );
+    
+    const group = escaped.join('|');
+
+    cached = {
+      extensions,
+      patterns: {
+        // Matches any file with one of the configured extensions
+        ext: new RegExp(`\\.(${group})$`),
+        
+        // Matches index files (e.g., "index.page.tsx")
+        index: new RegExp(`^index\\.(${group})$`),
+        
+        // Matches page files in the app directory (e.g., "page.page.tsx")
+        page: new RegExp(`^page\\.(${group})$`),
+        
+        // Matches layout files in the app directory (e.g., "layout.page.tsx")
+        layout: new RegExp(`^layout\\.(${group})$`),
+      },
+    };
+
+    return cached;
+  };
+})();
+
 
     const fallback = ['js', 'jsx', 'ts', 'tsx']
     let extensions: string[]
